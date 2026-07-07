@@ -3,7 +3,7 @@
 A one-click ADB utility to safely restore and fix the stock Samsung Messages app after the forced July 2026 Google Messages migration—without losing any user data.
 
 [![GitHub Release](https://img.shields.io/github/v/release/alisakkaf/Samsung-Messages-Restorer?style=flat-square)](https://github.com/alisakkaf/Samsung-Messages-Restorer/releases)
-[![Downloads](https://img.shields.io/github/downloads/alisakkaf/Samsung-Messages-Restorer/total?style=flat-square&color=blue)](https://github.com/alisakkaf/Samsung-Messages-Restorer/releases)
+[![Downloads](https://img.shields.io/github/downloads/alisakkaf/Samsung-Messages-Restorer/latest/total?style=flat-square&color=blue)](https://github.com/alisakkaf/Samsung-Messages-Restorer/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/alisakkaf/Samsung-Messages-Restorer?style=flat-square&logo=github)](https://github.com/alisakkaf/Samsung-Messages-Restorer/stargazers)
 [![Security Status](https://img.shields.io/badge/Security-Verified-success?style=flat-square)](SECURITY.md)
 [![License](https://img.shields.io/github/license/alisakkaf/Samsung-Messages-Restorer?style=flat-square)](LICENSE)
