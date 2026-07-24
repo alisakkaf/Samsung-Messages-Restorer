@@ -199,14 +199,15 @@ setlocal enabledelayedexpansion
 if not "!V_LINE_1!"=="" (
     if not "!V_LINE_2!"=="" (
         :: Clean up potential carrige returns (\r) from android shell outputs
-        set "V_LINE_1=!V_LINE_1: =!" & set "V_LINE_1=!V_LINE_1:	=!"
-        set "V_LINE_2=!V_LINE_2: =!" & set "V_LINE_2=!V_LINE_2:	=!"
+        set "V_LINE_1=!V_LINE_1: =!" & set "V_LINE_1=!V_LINE_1: =!"
+        set "V_LINE_2=!V_LINE_2: =!" & set "V_LINE_2=!V_LINE_2: =!"
         set "FINAL_VERSION_DISPLAY=Update : !V_LINE_1! | Base : !V_LINE_2!"
     ) else (
-        set "V_LINE_1=!V_LINE_1: =!" & set "V_LINE_1=!V_LINE_1:	=!"
+        set "V_LINE_1=!V_LINE_1: =!" & set "V_LINE_1=!V_LINE_1: =!"
         set "FINAL_VERSION_DISPLAY=!V_LINE_1!"
     )
 )
+
 if "!FINAL_VERSION_DISPLAY!"=="" (
     echo   %C_RED%[!] Samsung Messages is NOT installed or disabled on this device.%C_RESET%
 ) else (
@@ -223,7 +224,7 @@ if not "%APK_PATH%"=="" for /f "tokens=*" %%a in ("%APK_PATH%") do set "APK_PATH
 set "APK_PATH=%APK_PATH: =%"
 
 if not "%APK_PATH%"=="" (
-    set "BACKUP_DIR=Backup_%CLEAN_MODEL%_v_%CLEAN_VER%"
+    set "BACKUP_DIR=Backup_%CLEAN_MODEL%_v_%V_LINE_1%"
     :: Strip any remaining system spaces or illegal tokens from folder name
     setlocal enabledelayedexpansion
     set "BACKUP_DIR=!BACKUP_DIR: =_!"
@@ -242,15 +243,36 @@ adb shell pm disable-user --user 0 com.google.android.apps.messaging >nul 2>&1
 
 adb shell cmd package uninstall-system-updates com.samsung.android.messaging > rollback_status.txt 2>&1
 findstr /i "Success" rollback_status.txt >nul
+set "UNINSTALL_UPDATES_OK=0"
+if %errorlevel% equ 0 set "UNINSTALL_UPDATES_OK=1"
+del rollback_status.txt >nul 2>&1
 
-if %errorlevel% neq 0 (
+if "%UNINSTALL_UPDATES_OK%"=="0" (
     echo %C_RED%[!] Standard system-update uninstall unsupported. Trying fallback purge...%C_RESET%
     adb shell pm uninstall --user 0 com.samsung.android.messaging >nul 2>&1
     adb shell pm install-existing --user 0 com.samsung.android.messaging >nul 2>&1
+    
+    :: In all fallback cases (uninstall-updates failed or purge executed), trigger official APK download & install flow
+    call :HANDLE_MISSING_APK_FALLBACK
+) else (
+    :: Verify package existence for User 0 even if uninstall-system-updates succeeded
+    adb shell pm list packages --user 0 com.samsung.android.messaging > check_pkg.txt 2>&1
+    findstr /i "com.samsung.android.messaging" check_pkg.txt >nul
+    if %errorlevel% neq 0 (
+        call :HANDLE_MISSING_APK_FALLBACK
+    )
+    del check_pkg.txt >nul 2>&1
 )
-del rollback_status.txt >nul 2>&1
 
-echo %C_YELLOW%[+] Grant full system permission...%C_RESET%
+echo %C_CYAN%[+] Restricting app updates and background activities...%C_RESET%
+adb shell appops set com.samsung.android.messaging REQUEST_INSTALL_PACKAGES deny >nul 2>&1
+adb shell cmd appops set com.samsung.android.messaging RUN_IN_BACKGROUND deny >nul 2>&1
+adb shell pm disable-user --user 0 com.samsung.android.sm.policy >nul 2>&1
+adb shell cmd package clear-package-preferred-activities com.samsung.android.messaging >nul 2>&1
+adb shell cmd package wait-for-handler --timeout 5000 >nul 2>&1
+adb shell cmd package set-app-links --state deny com.samsung.android.messaging >nul 2>&1
+
+echo %C_CYAN%[+] Grant full system permission...%C_RESET%
 adb shell pm grant com.samsung.android.messaging android.permission.READ_SMS >nul 2>&1
 adb shell pm grant com.samsung.android.messaging android.permission.SEND_SMS >nul 2>&1
 adb shell pm grant com.samsung.android.messaging android.permission.RECEIVE_SMS >nul 2>&1
@@ -280,3 +302,79 @@ echo.
 echo Operation Finished. Press [Enter] to return to Main Menu...
 pause >nul
 goto MAIN_MENU
+
+:HANDLE_MISSING_APK_FALLBACK
+echo.
+echo %C_RED%[*] Samsung Messages is NOT installed for user 0 on this device.%C_RESET%
+echo %C_YELLOW%[+] App was completely removed or not a system app on this ROM.%C_RESET%
+echo %C_YELLOW%[+] Reading device Android version (%ANDROID_VER%)...%C_RESET%
+
+set "APK_URL=https://www.apkmirror.com/apk/samsung-electronics-co-ltd/samsung-messages/samsung-messages-14-7-90-101-release/samsung-messages-14-7-90-101-android-apk-download/"
+
+echo %ANDROID_VER% | findstr /R "\<15\> \<16\>" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo %C_CYAN%[+] Android 15/16 detected. Opening APK download link...%C_RESET%
+    set "APK_URL=https://www.apkmirror.com/apk/samsung-electronics-co-ltd/samsung-messages/samsung-messages-16-2-02-6-release/samsung-messages-16-2-02-6-android-apk-download/"
+) else (
+    echo %C_CYAN%[+] Android detected. Opening APK download link...%C_RESET%
+)
+
+echo.
+echo %C_YELLOW%[*] Please download the APK file from the browser.%C_RESET%
+echo %C_YELLOW%[*] After downloading, please select the APK file and wait 10 seconds...%C_RESET%
+echo.
+
+
+echo %C_GRAY%[+] Opening browser in 5 seconds...%C_RESET%
+timeout /t 5 >nul
+
+start "" "%APK_URL%"
+
+
+<nul set /p "=%C_GRAY%[+] Opening file dialog in: %C_RESET%"
+for /L %%s in (10,-1,1) do (
+    <nul set /p "=%%s... "
+    timeout /t 1 >nul
+)
+echo.
+
+:SELECT_APK_FILE_LOOP
+echo %C_WHITE%[+] Opening Windows file dialog to select *.apk file...%C_RESET%
+set "SELECTED_APK="
+for /f "delims=" %%I in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Filter = 'APK Files (*.apk)|*.apk'; $dlg.Title = 'Select Samsung Messages APK File'; $dlg.InitialDirectory = [Environment]::GetFolderPath('UserProfile') + '\Downloads'; if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dlg.FileName }"') do (
+    set "SELECTED_APK=%%I"
+)
+
+if "%SELECTED_APK%"=="" (
+    echo %C_RED%[*] No file selected. Please choose an APK file to install.%C_RESET%
+    echo Press any key to try selecting the APK file again...
+    pause >nul
+    goto SELECT_APK_FILE_LOOP
+)
+
+echo %C_GREEN%[+] Selected file: "%SELECTED_APK%"%C_RESET%
+echo %C_CYAN%[+] Installing APK...%C_RESET%
+
+adb install --user 0 -r -d --dont-kill "%SELECTED_APK%" > apk_inst.txt 2>&1
+findstr /i "Success" apk_inst.txt >nul
+
+if %errorlevel% neq 0 (
+    adb install -r -d --dont-kill "%SELECTED_APK%" > apk_inst.txt 2>&1
+    findstr /i "Success" apk_inst.txt >nul
+)
+
+if %errorlevel% equ 0 (
+    echo %C_GREEN%[+][DONE] Samsung Messages APK installed successfully.%C_RESET%
+    del apk_inst.txt >nul 2>&1
+) else (
+    echo %C_RED%[*] App installation failed. Output:%C_RESET%
+    type apk_inst.txt
+    del apk_inst.txt >nul 2>&1
+    echo.
+    echo %C_RED%[*] Please select another APK file.%C_RESET%
+    echo Press any key to choose another APK file...
+    pause >nul
+    goto SELECT_APK_FILE_LOOP
+)
+
+goto :eof

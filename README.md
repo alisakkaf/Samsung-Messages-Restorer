@@ -18,14 +18,30 @@ A one-click ADB utility to safely restore and fix the stock Samsung Messages app
 
 ---
 
-## 🔍 The Problem (July 2026 Migration)
-In July 2026, Samsung pushed an aggressive system update forcing users away from the native **Samsung Messages** app (`com.samsung.android.messaging`) in favor of Google Messages. For many, the stock app was disabled, hidden, or broken, making it difficult to access old chat interfaces.
+## 🔍 The Problem & Modern One UI Shift
 
-**Samsung Messages Restorer** uses a smart automated script via Android Debug Bridge (ADB) to bypass this block, compare your active vs. base package versions, bypass the forced restriction, and safely re-enable your stock messaging environment **with 100% data preservation**.
+In July 2026, Samsung pushed an aggressive system update forcing users away from the native **Samsung Messages** app (`com.samsung.android.messaging`) in favor of Google Messages. For many users, the stock app was disabled, hidden, or broken, making it difficult to access original chat interfaces.
+
+### 💡 Why Did Samsung Messages Become Removable on Modern Devices (S25 Series / One UI 8.5 & 9 BETA)?
+
+On recent flagship devices (such as the **Galaxy S25 series** running **One UI 8.5 & 9 BETA**), Samsung fundamentally shifted its system application architecture:
+
+1. **Defaulting to Google Messages**: Samsung adopted Google Messages as the default out-of-the-box SMS/MMS client across globally shipped firmware, demoting Samsung Messages to an optional secondary app.
+2. **Transition from `/system/priv-app/` to Removable App**: To accommodate this change, recent updates removed Samsung Messages from the protected `/system/priv-app/` directory and moved it to removable partitions (such as `/product/app` or `/system/app`), converting it into a pre-installed app that can be uninstalled completely—just like any app downloaded from the Google Play Store.
+3. **Summary**: Changing the package installation path and privilege tier in recent updates allowed users to uninstall the app with a single click (whereas the legacy `/system/priv-app/` location previously strictly blocked uninstallation). This architectural shift makes automated APK restoration significantly easier and safer.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/alisakkaf/Samsung-Messages-Restorer/main/Screenshot/Samsung_Issue.png" width="350" alt="Forced July 2026 Google Messages Migration Issue">
 </p>
+
+---
+
+> [!NOTE]
+> 🟣 **Direct Official APK Mirrors for Manual Recovery:**
+> 
+> If Samsung Messages was completely purged from your device, you can grab the official release APK matching your Android version below:
+> - 📱 **Android 10 – 14**: [Download Samsung Messages v14.7.90.101 APK](https://www.apkmirror.com/apk/samsung-electronics-co-ltd/samsung-messages/samsung-messages-14-7-90-101-release/samsung-messages-14-7-90-101-android-apk-download/)
+> - ⚡ **Android 15 – 16 (One UI 8.5 & 9 BETA / S25 Series)**: [Download Samsung Messages v16.2.02.6 APK](https://www.apkmirror.com/apk/samsung-electronics-co-ltd/samsung-messages/samsung-messages-16-2-02-6-release/samsung-messages-16-2-02-6-android-apk-download/)
 
 ---
 
@@ -39,10 +55,16 @@ Here is how the utility looks during detection and execution processes:
 
 ---
 
-## ✨ Features
-*   **One-Click Restore:** Run `Fix_Samsung_Messages.bat` and let ADB handle the bypass.
-*   **Smart Version Comparison:** Extracts both the hidden factory system base version and the newly pushed carrier/OTA updates to ensure absolute target precision.
+## ✨ Key Features & Technical Capabilities
+
+*   **One-Click Automated Restore:** Run `Fix_Samsung_Messages.bat` and let ADB handle the full rollback, permission restoration, and app restriction setup.
+*   **Smart Version & Package Detection:** Automatically extracts active vs. base package versions and verifies whether `com.samsung.android.messaging` is installed for User 0.
+*   **Dynamic Android Version Detection:** Automatically detects whether your device runs Android 10-14 or Android 15-16 (S25 Series / One UI 8.5 & 9 BETA) and opens the matching APK download page.
+*   **Interactive Windows File Picker:** Automatically launches a native Windows GUI File Open dialog filtering strictly for `*.apk` files (`sort *.apk`) after a 10-second download buffer.
+*   **Fail-Safe APK Installation Engine:** Executes `adb install --user 0 -r -d --dont-kill` with full support for paths containing spaces, Arabic, English, or special characters, automatically validating 100% installation success.
+*   **Anti-Auto-Update & Restriction Layer:** Applies targeted appops policies (`REQUEST_INSTALL_PACKAGES deny`, `RUN_IN_BACKGROUND deny`), disables `com.samsung.android.sm.policy`, clears preferred activities, and revokes app links to block forced background updates.
 *   **Zero Data Loss:** Safely restores package flags without wiping your local SQLite database or SMS/MMS conversation logs.
+*   **Universal Windows Compatibility:** Works seamlessly across Windows 7, 8, 10, and 11 with VT100 ANSI color support.
 *   **No Root Required:** Operates completely within safe, official Android user-space shell boundaries.
 
 ---
@@ -61,12 +83,15 @@ Here is how the utility looks during detection and execution processes:
 
 ---
 
-## ⚠️ Safety, Disclaimers & Limitations
+## ⚠️ Safe Use Notice & Disclaimer
 
 > [!WARNING]
-> **Data Responsibility:** While this batch utility is specifically engineered to target application package status flags and preserve database integrity, modifying system package behaviors via ADB inherently carries minimal risk. **The author assumes no liability** for lost SMS logs, disrupted sync routines, or carrier-specific RCS dropouts. 
+> ### ⚠️ Safe Use Notice & Disclaimer
+> **Important**
 > 
-> Always generate a secure, manual backup using **Samsung Smart Switch** or **Google Cloud Backup** before executing any third-party ADB script.
+> While this tool is non-destructive to application packages, any system-level interaction via ADB carries minimal inherent risks. The maintainer assumes no liability for disrupted carrier-specific RCS profiles or accidental sync dropouts.
+> 
+> **Recommendation:** Always perform a manual backup via Samsung Smart Switch before running automated deployment scripts.
 
 ---
 
